@@ -333,6 +333,9 @@
   };
 
   Sprites.has = function (key) { return !!DEFS[key]; };
+  // 既存の形状にパレット差し替えで亜種を追加する（敵データから利用）
+  Sprites.addVariant = function (key, shape, pal) { if (SHAPES[shape]) DEFS[key] = { shape: shape, pal: pal }; };
+  Sprites.shapes = function () { return Object.keys(SHAPES); };
 
   root.Sprites = Sprites;
 })(typeof window !== 'undefined' ? window : globalThis);
