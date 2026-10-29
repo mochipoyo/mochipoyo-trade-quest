@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="description" content="もちぽよFXクエスト ～波形の勇者と相場の魔王～：JRPG風に冒険しながらFXトレードの判断を学ぶブラウザゲーム（学習用人工データ）">
+<title>もちぽよFXクエスト ～波形の勇者と相場の魔王～</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b1226'/%3E%3Crect x='3' y='9' width='2' height='4' fill='%234cc38a'/%3E%3Crect x='7' y='5' width='2' height='8' fill='%23e5484d'/%3E%3Crect x='11' y='2' width='2' height='9' fill='%23ffd24a'/%3E%3C/svg%3E">
+</head>
+<body>
+<div id="app">
+  <div id="screen" class="screen"></div>
+  <div id="overlay"></div>
+  <div id="toast"></div>
+</div>
+<noscript><div class="win panel" style="margin:2rem">このゲームはJavaScriptが必要です。</div></noscript>
+
+<!-- スクリプトは通常のscript読み込み（ビルド・fetch不要・相対パス） -->
+<script src="js/config.js"></script>
+<script src="js/indicators.js"></script>
+<script src="js/scenarios.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/data.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/save.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  // エラーが起きても真っ白にならないよう、起動と実行時エラーを捕捉して表示する
+  (function () {
+    function showError(msg) {
+      var s = document.getElementById('screen');
+      if (!s) return;
+      var box = document.createElement('div');
+      box.className = 'win panel error-box';
+      box.innerHTML = '<h2>エラーが発生しました</h2><p>' + String(msg).replace(/</g, '&lt;') + '</p><p class="muted small">ページを再読み込みしてください。問題が続く場合は「データ管理」からセーブデータを初期化すると解消することがあります。</p><button class="btn gold" onclick="location.reload()">再読み込み</button>';
+      s.appendChild(box);
+    }
+    window.addEventListener('error', function (e) { showError(e.message || e); });
+    window.addEventListener('unhandledrejection', function (e) { showError(e.reason || e); });
+    try {
+      if (!window.UI || !window.Game) throw new Error('スクリプトの読み込みに失敗しました（js/ フォルダの位置を確認してください）');
+      window.UI.boot();
+    } catch (e) { showError(e.message || e); }
+  })();
+</script>
+</body>
+</html>
