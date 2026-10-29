@@ -13,6 +13,8 @@
   // クエストの条件（counter/need の単一条件、または needs = [[counter, need, label], ...] の複数条件）
   Events.questNeeds = function (q) { return q.needs ? q.needs : (q.counter ? [[q.counter, q.need, '']] : []); };
   Events.questProgress = function (id) { var d = State.data; var q = QUESTS[id]; if (!q) return ''; return Events.questNeeds(q).map(function (n) { return (n[2] ? n[2] + ' ' : '') + Math.min(n[1], d.counters[n[0]] || 0) + '/' + n[1]; }).join('　'); };
+  // v5.0: クエストの現在の目的（steps = [[flag, text], ...] の、まだ立っていない最初のフラグ）
+  Events.questObjective = function (id) { var d = State.data; var q = QUESTS[id]; if (!q || !q.steps) return ''; for (var i = 0; i < q.steps.length; i++) if (!d.flags[q.steps[i][0]]) return '目的：' + q.steps[i][1]; return '目的：達成'; };
   Events.questSatisfied = function (id) { var d = State.data; var q = QUESTS[id]; var needs = Events.questNeeds(q); return needs.length > 0 && needs.every(function (n) { return (d.counters[n[0]] || 0) >= n[1]; }); };
   Events.questComplete = async function (id) {
     var d = State.data; var q = QUESTS[id]; if (!q) return; if (d.quests[id] && d.quests[id].state === 'done') return;
@@ -62,7 +64,9 @@
       battle: function (ids, opts) { return root.BattleUI.start(ids, opts); },
       warp: function (map, x, y) { World.enterMap(map, x, y, 'down'); },
       heal: function () { State.partyActors().forEach(root.Actors.fullHeal); World.updateHud(); },
-      party: function () { return State.partyActors(); }
+      party: function () { return State.partyActors(); },
+      // v5.0: 仲間がパーティーにいるときだけ出る一言（1回だけ出すときは onceFlag を渡す）
+      remark: async function (id, lines, onceFlag) { if (!d.companions[id] || d.party.indexOf(id) < 0) return false; if (onceFlag && d.flags[onceFlag]) return false; if (onceFlag) d.flags[onceFlag] = true; await Win.message(lines, { name: root.COMPANIONS[id].name, portrait: Events.portraitFor(root.COMPANIONS[id].name, null) }); return true; }
     };
   };
 
@@ -70,7 +74,7 @@
   Events.run = async function (ev) {
     var d = State.data; World.busy = true;
     try {
-      if (ev.type === 'inspect') { await Win.message(ev.text); }
+      if (ev.type === 'inspect') { await Win.message(ev.text); if (ev.onceFlag) d.flags[ev.onceFlag] = true; }
       else if (ev.type === 'board') { await root.Services.questBoard(); }
       else if (ev.type === 'locked') {
         if (d.flags[ev.doneFlag]) { /* 開いている */ }
@@ -81,6 +85,11 @@
         if (d.flags[ev.doneFlag]) { /* 開いている */ }
         else if (root.Growth && root.Growth.rankReached(ev.rank)) { d.flags[ev.doneFlag] = true; World.applyState(World.map); if (root.Audio) root.Audio.sfx('door'); await Win.message(['扉に刻まれた波形の紋章が、あなたの称号「' + root.Growth.title() + '」に応えて光った。', '扉が開いた！']); }
         else await Win.message((ev.text || ['波形の紋章が刻まれた扉だ。']).concat(['トレーダーランク ' + root.RANK_UNLOCKS[ev.rank].letter + '（' + root.RANK_UNLOCKS[ev.rank].title + '）以上の者に開く。今のランク：' + root.TradeEval.rank(d.trade).letter + '（最高到達 ' + root.RANK_UNLOCKS[root.Growth ? root.Growth.rankBest() : 0].letter + '）', 'ランクは判断の質で上がる。メニューの「トレード修行」で条件を確認できる。']));
+      }
+      else if (ev.type === 'gate') {   // v5.1: フラグで開く関所（鍵アイテム不要）
+        if (d.flags[ev.doneFlag]) { /* 開いている */ }
+        else if (ev.needFlag && d.flags[ev.needFlag]) { d.flags[ev.doneFlag] = true; World.applyState(World.map); if (root.Audio) root.Audio.sfx('door'); await Win.message(ev.openText || ['関所が開いた。']); if (ev.questStart) Events.questStart(ev.questStart); }
+        else await Win.message(ev.text || ['通れない。']);
       }
       else if (ev.type === 'learn') { await root.Learning.run(ev.learnId); World.applyState(World.map); }
       else if (ev.type === 'trial' && ev.learnId) {   // 必修の学習イベント（扉）：教え→試練。合格で扉が開く。達成後は復習できる
