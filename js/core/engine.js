@@ -19,7 +19,7 @@
     keys: {}, pressed: {}, dirHeld: null, _queue: [],
     init: function () {
       var map = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right',
-        Enter: 'ok', z: 'ok', Z: 'ok', ' ': 'ok', Escape: 'cancel', x: 'cancel', X: 'cancel', Backspace: 'cancel', m: 'map', M: 'map' };
+        Enter: 'ok', z: 'ok', Z: 'ok', ' ': 'ok', Escape: 'cancel', x: 'cancel', X: 'cancel', Backspace: 'cancel', m: 'minimap', M: 'minimap', n: 'map', N: 'map', Tab: 'map' };   // v6.1 M＝ミニマップの表示切替、N（Tab）＝全体マップ
       document.addEventListener('keydown', function (e) {
         var k = map[e.key]; if (!k) return;
         if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) return;
@@ -66,6 +66,14 @@
     Engine.ctx = canvas.getContext('2d');
     Engine.ctx.imageSmoothingEnabled = false;
     Input.init();
+  };
+  // v6.1 表示タイル数の変更（スマホの縦画面でゲーム画面を縦に広げる。js/ui/mobile.js）。キャンバスの内部サイズも合わせる
+  Engine.VIEW_W0 = Engine.VIEW_W; Engine.VIEW_H0 = Engine.VIEW_H;
+  Engine.setView = function (w, h) {
+    if (w === Engine.VIEW_W && h === Engine.VIEW_H) return false;
+    Engine.VIEW_W = w; Engine.VIEW_H = h; var c = Engine.canvas;
+    if (c) { c.width = w * Engine.TS; c.height = h * Engine.TS; if (Engine.ctx) Engine.ctx.imageSmoothingEnabled = false; }
+    return true;
   };
   Engine.start = function () {
     if (Engine.running) return; Engine.running = true; Engine.last = performance.now();
