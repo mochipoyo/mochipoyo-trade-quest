@@ -376,8 +376,9 @@
 
   Menu.encyclopedia = async function () {
     while (true) {
-      var i = await Win.choice('図鑑', ['モンスター図鑑', 'アイテム図鑑', '職業一覧', '冒険の記録', 'オーパーツ（' + (root.Ooparts ? root.Ooparts.count() + '/' + root.Ooparts.total() : '0') + '）', 'カジノ・学院の記録', 'やめる']);
-      if (i < 0 || i === 6) return;
+      var i = await Win.choice('図鑑', ['モンスター図鑑', 'アイテム図鑑', '職業一覧', '冒険の記録', 'オーパーツ（' + (root.Ooparts ? root.Ooparts.count() + '/' + root.Ooparts.total() : '0') + '）', 'カジノ・学院の記録', 'クイズモンスター図鑑', 'やめる']);
+      if (i < 0 || i === 7) return;
+      if (i === 6) { if (root.QuizBattleUI) await root.QuizBattleUI.bestiary(); continue; }   // トレードクイズモンスター5体
       if (i === 4) { if (root.OopartsUI) await root.OopartsUI.list(); continue; }   // v6.1
       if (i === 5) { await Menu.studyRecord(); continue; }   // v6.1
       var d = State.data;
@@ -506,8 +507,9 @@
 
   Menu.dataManagement = async function () {
     while (true) {
-      var i = await Win.choice('データ管理', ['セーブデータをJSONで書き出す', 'JSONを読み込む', 'スロットを削除', 'やめる', 'クラウドセーブ（PC・スマホで共有）', 'バックアップ・ファイル']);
+      var i = await Win.choice('データ管理', ['セーブデータをJSONで書き出す', 'JSONを読み込む', 'スロットを削除', 'やめる', 'クラウドセーブ（PC・スマホで共有）', 'バックアップ・ファイル', 'プレイ記録（バランス調整用）']);
       if (i < 0 || i === 3) return;
+      if (i === 6) { if (root.PlayLog) await root.PlayLog.menu(); continue; }   // 遊んだ記録（この端末だけ。セーブデータとは別のキー）
       if (i === 4) { await root.SaveUI.cloud(); continue; }   // v6.5
       if (i === 5) { await root.SaveUI.backups(); continue; }   // v6.5
       if (i === 0) { var blob = new Blob([State.exportJSON()], { type: 'application/json' }); var u = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = u; a.download = 'mochipoyo-trade-quest-save.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 1000); await Win.message(['書き出した。ブラウザの保存データを消すと進行が失われるので、JSONを保管しておこう。']); }

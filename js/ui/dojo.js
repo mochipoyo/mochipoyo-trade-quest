@@ -105,7 +105,7 @@
     var learned = u.recordExam(d, mid, kind, er);
     var RN = {}; (root.ULT_REASONS || []).forEach(function (r) { RN[r.key] = r.label; });
     var html = '<div class="rw-title">' + esc(title) + 'の結果　' + (er.pass ? '<span class="up">合格</span>' : '<span class="down">不合格</span>') + '</div>' +
-      '<div class="ex-sum">平均 <b>' + er.avg + '点</b>　流れに逆らう判断 ' + er.opposite + '問・無謀な判断 ' + er.reckless + '問<br><span class="muted small">合格の条件：' + esc(er.need) + '</span></div>' +
+      '<div class="ex-sum">平均 <b>' + er.avg + '点</b>　流れに逆らう判断 ' + er.opposite + '問・無謀な判断 ' + er.reckless + '問・エントリー ' + er.entries + '問<br><span class="muted small">合格の条件：' + esc(er.need) + '</span></div>' +
       '<table class="ex-table"><tr><th>問</th><th>相場</th><th>判断</th><th>結果</th><th>点</th></tr>' + rows.map(function (r, i) { var df = root.Market.def(r.res.scenarioId); return '<tr><td>' + (i + 1) + '</td><td>' + esc(df ? df.catName : '') + '</td><td>' + sideName(r.res.side) + (r.res.auto ? '（時間切れ）' : '') + (adv && r.res.reason ? '<br><span class="muted small">' + esc(RN[r.res.reason] || '') + '</span>' : '') + '</td><td>' + esc(outName(r.res.result)) + '</td><td><b>' + r.sc.score + '</b></td></tr>'; }).join('') + '</table>' +
       '<div class="muted small">※ 架空のシミュレーション相場での練習です。結果は実際の取引の成績を示すものではありません。</div>';
     await Win.panel(html, { cls: 'exam-result' });
@@ -159,12 +159,26 @@
     var u = U(), d = State.data; u.sync(d);
     while (true) {
       var n = u.count(d);
-      var i = await Win.list([{ label: '必殺技の一覧（50）', right: n + '/50' }, { label: '流派と師匠（10）' }, { label: '必殺技の成績' }, { label: '必殺技とは？' }], { title: '必殺技' });
+      var nrv = ((d.ultimate && d.ultimate.reviews) || []).length;
+      var i = await Win.list([{ label: '必殺技の一覧（50）', right: n + '/50' }, { label: '流派と師匠（10）' }, { label: '必殺技の成績' }, { label: '必殺技とは？' }, { label: 'トレードの振り返り（最近10回）', right: nrv + '件', disabled: !nrv }], { title: '必殺技' });
       if (i < 0) return;
+      if (i === 4) { await TD.reviews(); continue; }
       if (i === 0) await listAll();
       else if (i === 1) await schools();
       else if (i === 2) await TD.records(null);
       else if (i === 3) await Win.message(['必殺技は主人公だけが使える技。戦闘のコマンド「必殺技」から選ぶ。', '使うと架空のシミュレーション相場のチャートが動き出す。ロング（買い）・ショート（売り）・見送りのどれかを、決められた時間のうちに選ぶ。', '損切りは ATR×1.0、利確は ATR×1.8、最大12本で決済。利益が出れば大ダメージ、損失なら小ダメージ、見送りは防御になる。', 'レベルで覚える技と、各地のトレーダー師匠の試験に合格して覚える技がある（10の流派・各5つ）。判断の時間は「設定」で変えられる。'], { name: '必殺技' });
+    }
+  };
+  // トレードの振り返り：最近10回の判断（必殺技・修行・試験）。選ぶと「判断した時点のチャート」と「実際の値動き」を並べて見る
+  TD.reviews = async function () {
+    var d = State.data; var L = ((d.ultimate && d.ultimate.reviews) || []).slice().reverse(); if (!L.length) return;
+    var MODE = { battle: '戦闘', practice: '修行', exam: '試験' };
+    var cb = root.ChartBattleUI; var f = function (p) { return (p > 0 ? '+' : '') + (Math.round(p * 10) / 10).toFixed(1) + 'pips'; };
+    while (true) {
+      var items = L.map(function (r) { var R = r.R || {}; var dt = new Date(r.t || 0); var when = (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + ('0' + dt.getHours()).slice(-2) + ':' + ('0' + dt.getMinutes()).slice(-2);
+        return { label: (MODE[r.mode] || '') + '｜' + (r.title || '') , right: R.entry ? (R.side === 'long' ? 'ロング ' : 'ショート ') + f(R.pips) : '見送り', sub: when + '｜' + (R.entry ? (R.exit.reason === 'tp' ? '利確' : R.exit.reason === 'sl' ? '損切り' : '時間切れ') + '・' + R.bars + '本' : 'その後の値動きを見る') }; });
+      var i = await Win.list(items, { title: 'トレードの振り返り（新しい順）' }); if (i < 0) return;
+      if (cb && cb.review) await cb.review(L[i]);
     }
   };
   async function listAll() {
